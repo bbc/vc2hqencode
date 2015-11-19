@@ -1,0 +1,26 @@
+# Contributors to vc2hqencode
+#
+# The format of this file was inspired by the x264 AUTHORS file which was
+# inspired by the Linux kernel CREDITS file.
+# Authors are listed alphabetically.
+#
+# The fields are: name (N), email (E), web-address (W), CVS account login (C),
+# PGP key ID and fingerprint (P), description (D), and snail-mail address (S).
+
+N: Jonathan Rosser
+E: jonathan.rosser@bbc.co.uk
+D: Moving Zoneplate Generator
+S: BBC R&D, 5th Floor, Dock House, MediaCity UK, Manchester, M50 2LH, United Kingdom
+
+N: James P. Weaver
+E: james.barrett@bbc.co.uk
+D: Maintainer
+D: Overall Library Structure
+D: Runtime Code Selection
+D: Wavelet Transform
+D: Quantiser Selection
+D: Variable Length Coding
+D: Serialisation
+D: Test Program
+D: Unit Tests
+S: BBC R&D, 5th Floor, Dock House, MediaCity UK, Manchester, M50 2LH, United Kingdom

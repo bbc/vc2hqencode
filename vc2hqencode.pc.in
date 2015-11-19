@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/vc2hqencode-@VC2HQENCODE_MAJORMINOR@
+toolsdir=${exec_prefix}/bin
+
+
+Name: vc2hqencode-@VC2HQENCODE_MAJORMINOR@
+Description: Encode Library for VC2 High Quality Profile
+Requires.private: @VC2HQENCODE_PKG_DEPS@
+Version: @VERSION@
+Libs: -L${libdir} -lvc2hqencode-@VC2HQENCODE_MAJORMINOR@
+Cflags: -I${includedir}

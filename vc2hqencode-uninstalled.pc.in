@@ -1,0 +1,10 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}/vc2hqencode/
+includedir=${pcfiledir}/
+
+Name: vc2hqencode-@VC2HQENCODE_MAJORMINOR@ uninstalled
+Description: Encode Library for VC2 High Quality Profile
+Version: @VERSION@
+Libs: -L${libdir} -lvc2hqencode-@VC2HQENCODE_MAJORMINOR@
+Cflags: -I${includedir} -I@srcdir@

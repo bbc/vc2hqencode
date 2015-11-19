@@ -1,0 +1,37 @@
+This is the VC-2 HQ Profile encoder library.
+
+It is quite performant, and scales well across multiple threads.
+
+For licensing information check the COPYING file.
+
+POSIX Platforms
+---------------
+
+On POSIX platforms it can be built using the standards autotools process:
+
+  ./autogen.sh
+  ./configure
+  make
+  make install
+
+the library itself will be built, along with the testsuite and a command-line
+test encoder.
+
+To run the test suite:
+
+  make check
+
+To run the commandline encoder:
+
+  ./testprogs/vc2encode [<input filename>]
+
+command line options exist, a help message can be extracted via:
+
+  ./testprogs/vc2decode --help
+
+
+
+WINDOWS
+-------
+
+Windows support is coming some time.
