@@ -58,5 +58,3 @@ noinst_HEADERS = VC2Encoder.hpp \
 nodist_pkginclude_HEADERS = vc2hqencode-stdint.h
 
 DISTCLEANFILES = vc2hqencode-stdint.h
-
-EXTRA_DIST = generate_slice_component_func.py
