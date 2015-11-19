@@ -2,7 +2,8 @@ This is the VC-2 HQ Profile encoder library.
 
 It is quite performant, and scales well across multiple threads.
 
-For licensing information check the COPYING file.
+For GPL licensing information check the COPYING file, alternatively for
+a commercial license please contact < ipstudio@bbc.co.uk >
 
 POSIX Platforms
 ---------------
