@@ -70,19 +70,25 @@ template<> void Haar_transform_H_inplace_10P2_avx2<0,int16_t>(const char *_idata
         D0  = _mm256_shuffle_epi8(D0,  SHUF);
         D16 = _mm256_shuffle_epi8(D16, SHUF);
 
+        D0  = _mm256_permute4x64_epi64(D0, 0xD8);
+        D16 = _mm256_permute4x64_epi64(D16, 0xD8);
+
         __m256i E0 = _mm256_permute2x128_si256(D0, D16, 0x20); // equivalent to an 128-bit unpack lo
         __m256i O1 = _mm256_permute2x128_si256(D0, D16, 0x31); // equivalent to an 128-bit unpack hi
 
         __m256i X1 = _mm256_sub_epi16(O1, E0);
         __m256i X0 = _mm256_add_epi16(E0, _mm256_srai_epi16(_mm256_add_epi16(X1, ONE), 1));
 
-        ZA0 = _mm256_unpacklo_epi16(X0, X1);
-        ZA8 = _mm256_unpackhi_epi16(X0, X1);
+        __m256i Y0 = _mm256_unpacklo_epi16(X0, X1);
+        __m256i Y8 = _mm256_unpackhi_epi16(X0, X1);
+
+        ZA0 = _mm256_permute2x128_si256(Y0, Y8, 0x20);
+        ZA8 = _mm256_permute2x128_si256(Y0, Y8, 0x31);
       }
 
       {
-        __m256i D0  = _mm256_loadu_si256((__m256i *)&idata[y*istride + x +  0]);
-        __m256i D16 = _mm256_loadu_si256((__m256i *)&idata[y*istride + x + 16]);
+        __m256i D0  = _mm256_loadu_si256((__m256i *)&idata[(y + skip)*istride + x +  0]);
+        __m256i D16 = _mm256_loadu_si256((__m256i *)&idata[(y + skip)*istride + x + 16]);
 
         D0  = _mm256_sub_epi16(D0, OFFSET);
         D16 = _mm256_sub_epi16(D16, OFFSET);
@@ -90,14 +96,20 @@ template<> void Haar_transform_H_inplace_10P2_avx2<0,int16_t>(const char *_idata
         D0  = _mm256_shuffle_epi8(D0,  SHUF);
         D16 = _mm256_shuffle_epi8(D16, SHUF);
 
+        D0  = _mm256_permute4x64_epi64(D0, 0xD8);
+        D16 = _mm256_permute4x64_epi64(D16, 0xD8);
+
         __m256i E0 = _mm256_permute2x128_si256(D0, D16, 0x20); // equivalent to an 128-bit unpack lo
         __m256i O1 = _mm256_permute2x128_si256(D0, D16, 0x31); // equivalent to an 128-bit unpack hi
 
         __m256i X1 = _mm256_sub_epi16(O1, E0);
         __m256i X0 = _mm256_add_epi16(E0, _mm256_srai_epi16(_mm256_add_epi16(X1, ONE), 1));
 
-        ZB0 = _mm256_unpacklo_epi16(X0, X1);
-        ZB8 = _mm256_unpackhi_epi16(X0, X1);
+        __m256i Y0 = _mm256_unpacklo_epi16(X0, X1);
+        __m256i Y8 = _mm256_unpackhi_epi16(X0, X1);
+
+        ZB0 = _mm256_permute2x128_si256(Y0, Y8, 0x20);
+        ZB8 = _mm256_permute2x128_si256(Y0, Y8, 0x31);
       }
 
       {

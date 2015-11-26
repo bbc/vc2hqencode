@@ -42,6 +42,7 @@ void LeGall_5_3_transform_H_inplace_V210_sse4_2(const char *_idata,
 
   const uint8_t *idata = (const uint8_t *)_idata;
   const __m128i ONE    = _mm_set1_epi16(1);
+  const __m128i TWO    = _mm_set1_epi16(2);
 
   const __m128i V210_LUMA_MASK = _mm_set_epi32(0x3FF003FF, 0x000FFC00, 0x3FF003FF, 0x000FFC00);
   const __m128i V210_LUMA_SHUF = _mm_set_epi8(0xFF, 0xFF, 15, 14, 10, 9, 5, 4,
@@ -111,7 +112,7 @@ void LeGall_5_3_transform_H_inplace_V210_sse4_2(const char *_idata,
           Xm1 = _mm_slli_si128(X1, 4);
           Xm1 = _mm_shufflelo_epi16(Xm1, 0x3A);
           Xm1 = _mm_shufflehi_epi16(Xm1, 0x38);
-          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  ONE), 1));
+          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  TWO), 2));
 
           __m128i Z0 = _mm_unpacklo_epi16(X0, X1);
           __m128i Z6 = _mm_unpackhi_epi16(X0, X1);
@@ -159,7 +160,7 @@ void LeGall_5_3_transform_H_inplace_V210_sse4_2(const char *_idata,
           Xm1 = _mm_alignr_epi8(X1, Xm1, 12);
           Xm1 = _mm_shufflelo_epi16(Xm1, 0x38);
           Xm1 = _mm_shufflehi_epi16(Xm1, 0x38);
-          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  ONE), 1));
+          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  TWO), 2));
 
           __m128i Z0 = _mm_unpacklo_epi16(X0, X1);
           __m128i Z6 = _mm_unpackhi_epi16(X0, X1);
@@ -184,7 +185,7 @@ void LeGall_5_3_transform_H_inplace_V210_sse4_2(const char *_idata,
           Xm1 = _mm_alignr_epi8(X1, Xm1, 12);
           Xm1 = _mm_shufflelo_epi16(Xm1, 0x38);
           Xm1 = _mm_shufflehi_epi16(Xm1, 0x38);
-          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  ONE), 1));
+          __m128i X0 = _mm_add_epi16(YE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  TWO), 2));
 
           __m128i Z0 = _mm_unpacklo_epi16(X0, X1);
           __m128i Z6 = _mm_unpackhi_epi16(X0, X1);
@@ -257,7 +258,7 @@ void LeGall_5_3_transform_H_inplace_V210_sse4_2(const char *_idata,
           Xm1 = _mm_slli_si128(X1, 4);
           Xm1 = _mm_shufflelo_epi16(Xm1, 0x3A);
           Xm1 = _mm_shufflehi_epi16(Xm1, 0x38);
-          __m128i X0 = _mm_add_epi16(CE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  ONE), 1));
+          __m128i X0 = _mm_add_epi16(CE, _mm_srai_epi16(_mm_add_epi16(_mm_add_epi16(X1, Xm1),  TWO), 2));
 
           __m128i ZU = _mm_unpacklo_epi16(X0, X1);
           __m128i ZV = _mm_unpackhi_epi16(X0, X1);

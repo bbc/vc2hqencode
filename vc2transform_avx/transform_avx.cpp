@@ -134,7 +134,10 @@ InplaceTransform get_vtransform_avx(int wavelet_index, int level, int coef_size,
     case VC2ENCODER_WFT_HAAR_SINGLE_SHIFT:
       switch (level) {
       case 0:
-        return NULL;
+        if (fmt == VC2ENCODER_INPUT_10P2)
+          return NULL;
+        else
+          return Haar_transform_V_inplace_sse4_2_avx<1, int32_t>;
       }
       break;
     }

@@ -61,7 +61,7 @@ AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes] turn on debugging
 if test "x$enable_debug" = "xyes"; then
 		 VC2HQENCODE_CFLAGS="$VC2HQENCODE_CFLAGS -g -Og -DDEBUG"
 		 CXXFLAGS="$CXXFLAGS -O0"
-     VC2HQENCODE_LDFLAGS="$VC2HQENCODE_LDFLAGS -pg -lstdc++ -lefence"
+     VC2HQENCODE_LDFLAGS="$VC2HQENCODE_LDFLAGS -pg"
 AC_MSG_RESULT(yes)
 else
 AC_MSG_RESULT(no)

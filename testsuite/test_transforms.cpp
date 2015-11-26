@@ -103,7 +103,7 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
   const int width   = 480;
   const int height  = 270;
   int istride;
-  const int ostride = width + 8;
+  const int ostride = ((width + 8 + 15)/16)*16;
   int idata_length;
   int comps;
 
@@ -158,7 +158,7 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
     printf("EXISTS ] ");
 
     void *cdata = memalign(32, ostride*height*data.coef_size*2);
-    memset(cdata, 0, ostride*height*data.coef_size);
+    memset(cdata, 0, ostride*height*data.coef_size*2);
     {
       void *odata[] = { (uint8_t*)cdata, (uint8_t*)cdata + ostride*height*data.coef_size, (uint8_t*)cdata + ostride*height*data.coef_size + ostride*height*data.coef_size/2 };
       chtrans((const char *)idata, istride, odata, ostride, width, height, width, height);
@@ -186,7 +186,7 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
         printf(" NONE  ] ");
       } else {
         void *tdata = memalign(32, ostride*height*data.coef_size*2);
-        memset(tdata, 0, ostride*height*data.coef_size);
+        memset(tdata, 0, ostride*height*data.coef_size*2);
         {
           void *odata[] = { (uint8_t*)tdata, (uint8_t*)tdata + ostride*height*data.coef_size, (uint8_t*)tdata + ostride*height*data.coef_size + ostride*height*data.coef_size/2 };
           sse42htrans((const char *)idata, istride, odata, ostride, width, height, width, height);
@@ -198,7 +198,7 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
           cmp = memcmp(cdata, tdata, ostride*height*data.coef_size*2);
         else {
           for (int y = 0; y < height; y++) {
-            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)cdata)[y*ostride*data.coef_size], width*data.coef_size);
+            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)tdata)[y*ostride*data.coef_size], width*data.coef_size);
           }
         }
         if (cmp) {
@@ -238,7 +238,7 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
         printf(" NONE  ] ");
       } else {
         void *tdata = memalign(32, ostride*height*data.coef_size*2);
-        memset(tdata, 0, ostride*height*data.coef_size);
+        memset(tdata, 0, ostride*height*data.coef_size*2);
         {
           void *odata[] = { (uint8_t*)tdata, (uint8_t*)tdata + ostride*height*data.coef_size, (uint8_t*)tdata + ostride*height*data.coef_size + ostride*height*data.coef_size/2 };
           avxhtrans((const char *)idata, istride, odata, ostride, width, height, width, height);
@@ -250,11 +250,17 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
           cmp = memcmp(cdata, tdata, ostride*height*data.coef_size*2);
         else {
           for (int y = 0; y < height; y++) {
-            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)cdata)[y*ostride*data.coef_size], width*data.coef_size);
+            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)tdata)[y*ostride*data.coef_size], width*data.coef_size);
           }
         }
         if (cmp) {
           printf(" FAIL  ]\n");
+          for (int i = 0; i < ostride*height*data.coef_size*2; i++) {
+            if (((uint8_t*)cdata)[i] != ((uint8_t*)tdata)[i]) {
+              printf("Differs first at byte %d: 0x%02x != 0x%02x\n", i, ((uint8_t*)cdata)[i], ((uint8_t*)tdata)[i]);
+              break;
+            }
+          }
           r = 1;
           free(tdata);
           free(cdata);
@@ -296,11 +302,17 @@ int perform_transforminitialtest(const transforminitial_test &data, void *idata_
           cmp = memcmp(cdata, tdata, ostride*height*data.coef_size*2);
         else {
           for (int y = 0; y < height; y++) {
-            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)cdata)[y*ostride*data.coef_size], width*data.coef_size);
+            cmp |= memcmp(&((int8_t*)cdata)[y*ostride*data.coef_size], &((int8_t*)tdata)[y*ostride*data.coef_size], width*data.coef_size);
           }
         }
         if (cmp) {
           printf(" FAIL  ]\n");
+          for (int i = 0; i < ostride*height*data.coef_size*2; i++) {
+            if (((uint8_t*)cdata)[i] != ((uint8_t*)tdata)[i]) {
+              printf("Differs first at byte %d: 0x%02x != 0x%02x\n", i, ((uint8_t*)cdata)[i], ((uint8_t*)tdata)[i]);
+              break;
+            }
+          }
           r = 1;
           free(tdata);
           free(cdata);
