@@ -32,8 +32,8 @@ To run the commandline encoder:
 
   ./testprogs/vc2encode [<input filename>]
 
-Input files should be raw video in planar YUV format, with 10-bit samples in the most significant 
-10-bits of each 16-bit word OR in V210 foramt.
+Input files should be raw video in planar YUV format, with 10-bit samples in the least significant 
+10-bits of each 16-bit little-endian word (ffmpeg format yuv422p10le) OR in V210 foramt.
 
 command line options exist, a help message can be extracted via:
 

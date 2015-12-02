@@ -48,7 +48,7 @@ void generateMovingZonePlate(uint8_t *odata, int w, int h, int stride);
 void usage() {
   printf("Usage: vc2encode [options] [ input_file [output_file] ]\n");
   printf("  If no input is specified use internal zoneplate generator\n");
-  printf("  By default the output file will be the input file with .16p2 appended\n");
+  printf("  By default the output file will be the input file with .vc2 appended\n");
   printf("  All short program options must have a space between them and their parameter\n");
 }
 
@@ -93,7 +93,7 @@ int main (int argc, char *argv[]) {
     ("disable-output", disable_output, false,    "disable output")
     ("speed",          speed_string,   std::string("medium"), "speed: slowest, slower, slow, medium (default), fast, faster, fastest")
     ("interlace",      interlace,      false,    "Encode interlaced instead of progressive (input video should still be in full frames)")
-    ("V210",           V210,           false,    "Input file is V210 instead of planar")
+    ("V210",           V210,           false,    "Input file is V210 instead of yuv422p10le")
     ("width",          width,          1920,     "video width (default=1920)")
     ("height",         height,         1080,     "video height (default=1080)")
     ;
@@ -413,14 +413,7 @@ int main (int argc, char *argv[]) {
           }
           for (; y < height + pad_top; y++) {
             int x;
-            for (x = 0; x < w; x++) {
-              uint16_t d = (((uint8_t*)idata[i])[OFFS + (y*st + x)*2 + 1]) + (((uint8_t*)idata[i])[OFFS + (y*st + x)*2] << 8);
-              d += (1 << 5);
-              d >>= 6;
-              (((uint8_t*)idata[i])[OFFS + (y*st + x)*2 + 0]) = (uint8_t)(d&0xFF);
-              (((uint8_t*)idata[i])[OFFS + (y*st + x)*2 + 1]) = (uint8_t)(d >> 8);
-            }
-            for (; x < st; x++) {
+            for (x = w; x < st; x++) {
               ((uint16_t*)idata[i])[OFFS/2 + y*st + x] = 0x3FF;
             }
           }
