@@ -50,6 +50,7 @@ void usage() {
   printf("  If no input is specified use internal zoneplate generator\n");
   printf("  By default the output file will be the input file with .vc2 appended\n");
   printf("  All short program options must have a space between them and their parameter\n");
+  printf("  All program options must have a parameter\n");
 }
 
 int main (int argc, char *argv[]) {

@@ -47,8 +47,6 @@ using boost::bind;
 using std::bind;
 #endif
 
-#include <numa.h>
-
 #include "vc2transform_c/transform_c.hpp"
 #ifndef NO_SIMD
 #include "vc2transform_sse4_2/transform_sse4_2.hpp"
