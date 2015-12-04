@@ -38,7 +38,7 @@
 
 #include <string>
 
-#include "program_options_lite.h"
+#include "tclap/CmdLine.h"
 
 #define MIN(A,B) (((A)>(B))?(B):(A))
 
@@ -60,75 +60,94 @@ int main (int argc, char *argv[]) {
   /* Initialise Library */
   vc2encode_init();
 
-  /* Program Option parsing */
-  namespace po = df::program_options_lite;
-
-  int num_frames;
-  int ratio;
-  int threads_number;
-  bool help;
-  std::string wavelet_string;
-  std::string speed_string;
-  int depth;
-  bool disable_output;
-  bool interlace;
-  bool V210;
-  int width;
-  int height;
-  int slice_width;
-  int slice_height;
+  int num_frames              = 1;
+  int ratio                   = 2;
+  int threads_number          = 1;
+  std::string wavelet_string  = "legall";
+  std::string speed_string    = "medium";
+  int depth                   = 3;
+  bool disable_output         = false;
+  bool interlace              = false;
+  bool V210                   = false;
+  int width                   = 1920;
+  int height                  = 1080;
+  int slice_width             = 32;
+  int slice_height            = 8;
   std::string input_filename;
   std::string output_filename;
-  bool zoneplate;
-
-  po::Options opts;
-  opts.addOptions()
-    ("help,h",         help,           false,    "produce help message")
-    ("num-frames,n",   num_frames,     1,        "number of frames to encode")
-    ("ratio,r",        ratio,          2,        "reciprocal of compression ration (default 2)")
-    ("threads,t",      threads_number, 1,        "number of threads (minimum 1)")
-    ("wavelet,w",      wavelet_string, std::string("legall"), "wavelet kernel: `fidelity', `deslauriers-debuc-9-7', `deslauriers-debuc-13-7', `legall', `haar0', or `haar1'")
-    ("depth,d",        depth,          3,        "wavelet depth: default is 3")
-    ("slicewidth",     slice_width,    32,       "slice width: default is 32")
-    ("sliceheight",    slice_height,   8,        "slice height: default is 8")
-    ("disable-output", disable_output, false,    "disable output")
-    ("speed",          speed_string,   std::string("medium"), "speed: slowest, slower, slow, medium (default), fast, faster, fastest")
-    ("interlace",      interlace,      false,    "Encode interlaced instead of progressive (input video should still be in full frames)")
-    ("V210",           V210,           false,    "Input file is V210 instead of yuv422p10le")
-    ("width",          width,          1920,     "video width (default=1920)")
-    ("height",         height,         1080,     "video height (default=1080)")
-    ;
-
-  po::setDefaults(opts);
-  const std::list<const char*>& argv_unhandled = po::scanArgv(opts, argc, (const char**) argv);
-  std::list<const char*>::const_iterator argv_unhandled_it = argv_unhandled.begin();
-
-  if (help) {
-    usage();
-    po::doHelp(std::cout, opts, 81);
-    return 0;
-  }
-
+  bool zoneplate              = false;
   int speed = VC2ENCODER_SPEED_SLOWEST;
-  if (speed_string == "slowest")
-    speed = VC2ENCODER_SPEED_SLOWEST;
-  else if (speed_string == "slower")
-    speed = VC2ENCODER_SPEED_SLOWER;
-  else if (speed_string == "slow")
-    speed = VC2ENCODER_SPEED_SLOW;
-  else if (speed_string == "medium")
-    speed = VC2ENCODER_SPEED_MEDIUM;
-  else if (speed_string == "fast")
-    speed = VC2ENCODER_SPEED_FAST;
-  else if (speed_string == "faster")
-    speed = VC2ENCODER_SPEED_FASTER;
-  else if (speed_string == "fastest")
-    speed = VC2ENCODER_SPEED_FASTEST;
-  else {
-    printf("Inavlid speed selected\n\n");
-    usage();
-    po::doHelp(std::cout, opts, 81);
-    return 1;
+
+  try {
+    TCLAP::CmdLine cmd("VC2 HQ profile Encoder Example\n"
+                       "All input files must be yuv422p10le or v210\n"
+                       "All output files will be vc2 streams\n"
+                       "First file is input file, second is output, others are ignored", '=', "0.1", true);
+
+    TCLAP::ValueArg<int> num_frames_arg          ("n", "num-frames",     "Number of frames to decode",          false, 1, "integer", cmd);
+    TCLAP::ValueArg<int> ratio_arg               ("r", "ratio",          "r:1 compression ratio",               false, 2, "integer", cmd);
+    TCLAP::ValueArg<int> num_threads_arg         ("t", "threads",        "Number of threads",                   false, 1, "integer", cmd);
+    TCLAP::ValueArg<std::string> wavelet_arg     ("w", "wavelet",        "wavelet kernel: `fidelity', `deslauriers-debuc-9-7', `deslauriers-debuc-13-7', `legall', `haar0', or `haar1'", false, "legall", "string", cmd);
+    TCLAP::ValueArg<int> depth_arg               ("d", "depth",          "wavelet depth",                       false, 3, "integer", cmd);
+    TCLAP::ValueArg<int> slice_width_arg         ("", "slicewidth",    "slice width",                         false, 32, "integer", cmd);
+    TCLAP::ValueArg<int> slice_height_arg        ("", "sliceheight",   "slice height",                        false, 8, "integer", cmd);
+    TCLAP::SwitchArg     disable_output_arg      ("", "disable-output", "disable output",                                           cmd, false);
+    TCLAP::ValueArg<std::string> speed_arg       ("", "speed",          "speed: slowest, slower, slow, medium (default), fast, faster, fastest", false, "medium", "string", cmd);
+    TCLAP::SwitchArg     interlace_arg           ("", "interlace",      "interlaced output",                                        cmd, false);
+    TCLAP::SwitchArg     V210_arg                ("", "V210",           "V210 input",                                               cmd, false);
+    TCLAP::ValueArg<int> width_arg               ("", "width",          "frame width",                         false, 1920, "integer", cmd);
+    TCLAP::ValueArg<int> height_arg              ("", "height",         "frame height",                        false, 1080, "integer", cmd);
+    
+    TCLAP::UnlabeledMultiArg<std::string> file_args("input_file",   "encoded input file",                          false, "string", cmd);
+
+    cmd.parse( argc, argv );
+
+    num_frames          = num_frames_arg.getValue();
+    ratio               = ratio_arg.getValue();
+    threads_number      = num_threads_arg.getValue();
+    wavelet_string      = wavelet_arg.getValue();
+    depth               = depth_arg.getValue();
+    slice_width         = slice_width_arg.getValue();
+    slice_height        = slice_height_arg.getValue();
+    disable_output      = disable_output_arg.getValue();
+    speed_string        = speed_arg.getValue();
+    interlace           = interlace_arg.getValue();
+    V210                = V210_arg.getValue();
+    width               = width_arg.getValue();
+    height              = height_arg.getValue();
+
+    std::vector<std::string> filenames = file_args.getValue();
+    if (filenames.size() > 0) {
+      input_filename  = filenames[0];
+      if (filenames.size() > 1) {
+        output_filename = filenames[1];
+      } else {
+        output_filename = input_filename + ".vc2";
+      }
+    } else {
+      zoneplate = true;
+    }
+
+    if (speed_string == "slowest")
+      speed = VC2ENCODER_SPEED_SLOWEST;
+    else if (speed_string == "slower")
+      speed = VC2ENCODER_SPEED_SLOWER;
+    else if (speed_string == "slow")
+      speed = VC2ENCODER_SPEED_SLOW;
+    else if (speed_string == "medium")
+      speed = VC2ENCODER_SPEED_MEDIUM;
+    else if (speed_string == "fast")
+      speed = VC2ENCODER_SPEED_FAST;
+    else if (speed_string == "faster")
+      speed = VC2ENCODER_SPEED_FASTER;
+    else if (speed_string == "fastest")
+      speed = VC2ENCODER_SPEED_FASTEST;
+    else {
+      printf("Inavlid speed selected\n\n");
+      return 1;
+    }
+  } catch (TCLAP::ArgException &e) {
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; return 1;
   }
 
 
@@ -147,8 +166,6 @@ int main (int argc, char *argv[]) {
     wavelet = VC2ENCODER_WFT_HAAR_SINGLE_SHIFT;
   else {
     printf("Inavlid wavelet selected\n\n");
-    usage();
-    po::doHelp(std::cout, opts, 81);
     return 1;
   }
 
@@ -158,8 +175,7 @@ int main (int argc, char *argv[]) {
   int pad_top = 8;
   int pad_bot = 8;
 
-  if (argv_unhandled_it == argv_unhandled.end()) {
-    zoneplate = true;
+  if (zoneplate) {
     {
       std::stringstream ss;
       ss << "zoneplate_" << width << "x" << height << "_" << wavelet_string << "_";
@@ -170,13 +186,6 @@ int main (int argc, char *argv[]) {
       ss << speed_string << "_" << num_frames << "frames_" << threads_number << "threads" << ".vc2";
       output_filename = ss.str();
     }
-  } else {
-    zoneplate = false;
-    input_filename  = std::string(*(argv_unhandled_it++));
-    if (argv_unhandled_it == argv_unhandled.end())
-      output_filename = input_filename + ".vc2";
-    else
-      output_filename = std::string(*(argv_unhandled_it++));
   }
 
 
@@ -290,6 +299,10 @@ int main (int argc, char *argv[]) {
       stride = ((((width + 47)/48)*128 + 4095)/4096)*4096;
 
       int f = open(input_filename.c_str(), O_RDONLY);
+      if (!f) {
+        perror("Could not open input file");
+        return 1;
+      }
 
       int length = stride*(pad_top + height + pad_bot)*sizeof(uint8_t);
       int linelength = ((width + 47)/48)*128;

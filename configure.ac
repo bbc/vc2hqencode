@@ -44,6 +44,8 @@ LT_INIT(disable-static win32-dll)
 AC_PROG_CXX
 AM_PROG_CC_C_O
 
+AC_CXX_HAVE_SSTREAM
+
 AC_CONFIG_SRCDIR([vc2hqencode/vc2hqencode.h])
 
 AC_CONFIG_MACRO_DIR([m4])

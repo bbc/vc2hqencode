@@ -1,5 +1,4 @@
-The files testprogs/program_options_lite.h and
-testprogs/program_options_lite.cpp are distributed under the MIT
+The files testprogs/tclap/* are distributed under the MIT
 license as explained at the start of those files.
 
 All other files are distributed under the GPL as described in the 
