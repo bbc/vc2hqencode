@@ -84,7 +84,7 @@ int main (int argc, char *argv[]) {
                        "All output files will be vc2 streams\n"
                        "First file is input file, second is output, others are ignored", '=', "0.1", true);
 
-    TCLAP::ValueArg<int> num_frames_arg          ("n", "num-frames",     "Number of frames to decode",          false, 1, "integer", cmd);
+    TCLAP::ValueArg<int> num_frames_arg          ("n", "num-frames",     "Number of frames to encode",          false, 1, "integer", cmd);
     TCLAP::ValueArg<int> ratio_arg               ("r", "ratio",          "r:1 compression ratio",               false, 2, "integer", cmd);
     TCLAP::ValueArg<int> num_threads_arg         ("t", "threads",        "Number of threads",                   false, 1, "integer", cmd);
     TCLAP::ValueArg<std::string> wavelet_arg     ("w", "wavelet",        "wavelet kernel: `fidelity', `deslauriers-debuc-9-7', `deslauriers-debuc-13-7', `legall', `haar0', or `haar1'", false, "legall", "string", cmd);

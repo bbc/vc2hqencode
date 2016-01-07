@@ -50,7 +50,6 @@ uint8_t encode_bool(bool x, uint32_t *out, uint8_t *len) {
 }
 
 SequenceHeader::SequenceHeader(VC2EncoderParams &params) {
-  (void)params;
   data = (uint8_t*)malloc(MAX_PARSE_INFO_SIZE + MAX_SEQ_HEADER_SIZE);
   length = 0;
 
@@ -69,46 +68,97 @@ SequenceHeader::SequenceHeader(VC2EncoderParams &params) {
   l += encode_uint(3, cw++, wl++); // profile       == 3 (HQ)
 
   int level = 0;
-  switch (params.video_format.base_video_format) {
-  case VC2ENCODER_BVF_CUSTOM:
-    level = 0;
-    break;
-  case VC2ENCODER_BVF_QSIF525:
-  case VC2ENCODER_BVF_QCIF:
-  case VC2ENCODER_BVF_SIF525:
-  case VC2ENCODER_BVF_CIF:
-  case VC2ENCODER_BVF_4SIF525:
-  case VC2ENCODER_BVF_4CIF:
-    level = 1;
-    break;
-  case VC2ENCODER_BVF_SD480I_60:
-  case VC2ENCODER_BVF_SD576I_50:
-  case VC2ENCODER_BVF_SDPRO486:
-    level = 2;
-    break;
-  case VC2ENCODER_BVF_HD720P_60:
-  case VC2ENCODER_BVF_HD720P_50:
-  case VC2ENCODER_BVF_HD1080I_60:
-  case VC2ENCODER_BVF_HD1080I_50:
-  case VC2ENCODER_BVF_HD1080P_60:
-  case VC2ENCODER_BVF_HD1080P_50:
-  case VC2ENCODER_BVF_HD1080P_24:
-    level = 3;
-    break;
-  case VC2ENCODER_BVF_DC2K:
-    level = 4;
-    break;
-  case VC2ENCODER_BVF_DC4K:
-    level = 5;
-    break;
-  case VC2ENCODER_BVF_UHDTV4K_60:
-  case VC2ENCODER_BVF_UHDTV4K_50:
-    level = 6;
-    break;
-  case VC2ENCODER_BVF_UHDTV8K_60:
-  case VC2ENCODER_BVF_UHDTV8K_50:
-    level = 7;
-    break;
+  if (params.transform_params.wavelet_index <= VC2ENCODER_WFT_HAAR_SINGLE_SHIFT &&
+      params.transform_params.wavelet_depth <= 4) {
+    if (!(params.video_format.custom_dimensions_flag ||
+          params.video_format.custom_scan_format_flag ||
+          params.video_format.custom_frame_rate_flag  ||
+          params.video_format.custom_pixel_aspect_ratio_flag  ||
+          params.video_format.custom_clean_area_flag  ||
+          params.video_format.custom_signal_range_flag  ||
+          params.video_format.custom_color_spec_flag)) {
+      switch (params.video_format.base_video_format) {
+      case VC2ENCODER_BVF_CUSTOM:
+        level = 0;
+        break;
+      case VC2ENCODER_BVF_QSIF525:
+      case VC2ENCODER_BVF_QCIF:
+      case VC2ENCODER_BVF_SIF525:
+      case VC2ENCODER_BVF_CIF:
+      case VC2ENCODER_BVF_4SIF525:
+      case VC2ENCODER_BVF_4CIF:
+        level = 1;
+        break;
+      case VC2ENCODER_BVF_SD480I_60:
+      case VC2ENCODER_BVF_SD576I_50:
+      case VC2ENCODER_BVF_SDPRO486:
+        level = 2;
+        break;
+      case VC2ENCODER_BVF_HD720P_60:
+      case VC2ENCODER_BVF_HD720P_50:
+      case VC2ENCODER_BVF_HD1080I_60:
+      case VC2ENCODER_BVF_HD1080I_50:
+      case VC2ENCODER_BVF_HD1080P_60:
+      case VC2ENCODER_BVF_HD1080P_50:
+      case VC2ENCODER_BVF_HD1080P_24:
+        level = 3;
+        break;
+      case VC2ENCODER_BVF_DC2K:
+        level = 4;
+        break;
+      case VC2ENCODER_BVF_DC4K:
+        level = 5;
+        break;
+      case VC2ENCODER_BVF_UHDTV4K_60:
+      case VC2ENCODER_BVF_UHDTV4K_50:
+        level = 6;
+        break;
+      case VC2ENCODER_BVF_UHDTV8K_60:
+      case VC2ENCODER_BVF_UHDTV8K_50:
+        level = 7;
+        break;
+      }
+    } else if (params.video_format.base_video_format == VC2ENCODER_BVF_SD480I_60 &&
+               !(params.video_format.custom_frame_rate_flag  ||
+                 params.video_format.custom_pixel_aspect_ratio_flag  ||
+                 params.video_format.custom_clean_area_flag  ||
+                 params.video_format.custom_signal_range_flag  ||
+                 params.video_format.custom_color_spec_flag) &&
+               params.video_format.custom_dimensions_flag &&
+               params.video_format.frame_width == 720 &&
+               params.video_format.frame_height >= 480 &&
+               params.video_format.frame_height <= 486) {
+      level = 2;
+    } else if ((params.video_format.base_video_format == VC2ENCODER_BVF_SD480I_60 ||
+                params.video_format.base_video_format == VC2ENCODER_BVF_SD576I_50 ||
+                params.video_format.base_video_format == VC2ENCODER_BVF_SDPRO486) &&
+               !(params.video_format.custom_dimensions_flag ||
+                 params.video_format.custom_frame_rate_flag  ||
+                 params.video_format.custom_pixel_aspect_ratio_flag  ||
+                 params.video_format.custom_clean_area_flag  ||
+                 params.video_format.custom_signal_range_flag  ||
+                 params.video_format.custom_color_spec_flag)) {
+      level = 2;
+    } else if ((params.video_format.base_video_format == VC2ENCODER_BVF_HD1080I_60 ||
+                params.video_format.base_video_format == VC2ENCODER_BVF_HD1080I_50) &&
+               !(params.video_format.custom_dimensions_flag ||
+                 params.video_format.custom_frame_rate_flag  ||
+                 params.video_format.custom_pixel_aspect_ratio_flag  ||
+                 params.video_format.custom_clean_area_flag  ||
+                 params.video_format.custom_signal_range_flag  ||
+                 params.video_format.custom_color_spec_flag)) {
+      level = 3;
+    } else if ((params.video_format.base_video_format == VC2ENCODER_BVF_DC2K) &&
+               !(params.video_format.custom_dimensions_flag ||
+                 params.video_format.custom_scan_format_flag ||
+                 params.video_format.custom_pixel_aspect_ratio_flag  ||
+                 params.video_format.custom_clean_area_flag  ||
+                 params.video_format.custom_signal_range_flag  ||
+                 params.video_format.custom_color_spec_flag) &&
+               params.video_format.custom_frame_rate_flag &&
+               params.video_format.frame_rate_index == VC2ENCODER_FR_48) {
+      level = 4;
+    }
   }
   l += encode_uint(level, cw++, wl++); // level
   l += encode_uint(params.video_format.base_video_format, cw++, wl++); // base_video_format
