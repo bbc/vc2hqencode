@@ -250,12 +250,18 @@ void VC2Encoder::setParams(VC2EncoderParams &params) throw(VC2EncoderResult){
     mLumaHeight      /= 2;
   }
 
-  mPaddedWidth  = (mLumaWidth  + params.transform_params.slice_width  - 1)/params.transform_params.slice_width*params.transform_params.slice_width;
-  mPaddedHeight = (mLumaHeight + params.transform_params.slice_height - 1)/params.transform_params.slice_height*params.transform_params.slice_height;
+  mPaddedWidth  = (mLumaWidth  + (1 << params.transform_params.wavelet_depth)  - 1)/(1 << params.transform_params.wavelet_depth)*(1 << params.transform_params.wavelet_depth);
+  mPaddedHeight = (mLumaHeight + (1 << params.transform_params.wavelet_depth) - 1)/(1 << params.transform_params.wavelet_depth)*(1 << params.transform_params.wavelet_depth);
 
   if (((params.transform_params.slice_width/color_diff_width_factor)%(1 << params.transform_params.wavelet_depth) != 0) ||
       ((params.transform_params.slice_height/color_diff_height_factor)%(1 << params.transform_params.wavelet_depth) != 0)) {
     writelog(LOG_ERROR, "%s:%d: Transform depth inavlid for this slice size\n", __FILE__, __LINE__);
+    throw VC2ENCODER_BADPARAMS;
+  }
+
+  if ((mPaddedWidth%params.transform_params.slice_width != 0) ||
+      (mPaddedHeight%params.transform_params.slice_height != 0)) {
+    writelog(LOG_ERROR, "%s:%d: Support for slice sizes which do not divide the padded picture size is not implemented.\n", __FILE__, __LINE__);
     throw VC2ENCODER_BADPARAMS;
   }
 
