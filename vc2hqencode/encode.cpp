@@ -33,7 +33,7 @@
 
 #include "encode_slice_component_optimised.hpp"
 
-//#define FIXED_QI 28
+//#define FIXED_QI 30
 #define MIN_QI 0
 #define MAX_QI 64
 

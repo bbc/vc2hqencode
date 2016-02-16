@@ -37,8 +37,8 @@ template<class T> void Deslauriers_Dubuc_9_7_transform_H_inplace_10P2(const char
                                                                        const int oheight) {
   const int skip = 1;
 
-  const uint16_t *idata = *((const uint16_t **)_idata);
-  T *odata = (T *)_odata;
+  const uint16_t *idata = (const uint16_t *)_idata;
+  T *odata = *((T **)_odata);
   const T offset = 1 << 9;
 
   (void)iwidth;
