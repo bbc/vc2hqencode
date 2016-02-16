@@ -530,7 +530,7 @@ int main (int argc, char *argv[]) {
   while (total_frames_encoded < num_frames) {
     /* Reset to start of output buffer */
     char *o = odata;
-    uint32_t parse_offset;
+    uint32_t parse_offset = 0;
 
     /* Start Sequence */
     r = vc2encode_start_sequence(encoder, &o, &parse_offset);
