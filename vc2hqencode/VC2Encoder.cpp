@@ -277,8 +277,7 @@ void VC2Encoder::setParams(VC2EncoderParams &params) throw(VC2EncoderResult){
   writelog(LOG_INFO, "%s:%d: Configuring for %d threads, %d jobs\n", __FILE__, __LINE__, mThreads, mJobs);
 
 #ifndef DEBUG
-  const int numa_first_node = 0;
-  mPool = new ThreadPool(mThreads, numa_first_node);
+  mPool = new ThreadPool(mThreads, params.numa_first_node);
 #endif
 
   mSlicesPerLine  = mPaddedWidth/params.transform_params.slice_width;

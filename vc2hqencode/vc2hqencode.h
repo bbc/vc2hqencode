@@ -238,6 +238,7 @@ typedef struct _VC2EncoderParams {
   int qindex_min;
   int n_threads;
   int speed;
+  int numa_first_node;
 
   VC2EncoderInputFormat input_format;
 } VC2EncoderParams;
