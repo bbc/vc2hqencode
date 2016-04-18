@@ -19,7 +19,8 @@ libvc2hqencode_@VC2HQENCODE_MAJORMINOR@_la_LDFLAGS = \
 	-no-undefined \
 	-version-info $(VC2HQENCODE_LIBVERSION) \
 	$(VC2HQENCODE_LDFLAGS) \
-	-lpthread
+	-lpthread \
+        -lgcc
 
 libvc2hqencode_@VC2HQENCODE_MAJORMINOR@_la_CPPFLAGS = $(VC2HQENCODE_CFLAGS) \
 	$(BOOST_CFLAGS) \
