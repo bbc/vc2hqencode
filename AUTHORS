@@ -7,6 +7,10 @@
 # The fields are: name (N), email (E), web-address (W), CVS account login (C),
 # PGP key ID and fingerprint (P), description (D), and snail-mail address (S).
 
+N: Philip de Nier 
+E: philipn@rd.bbc.co.uk
+D: Symbol Visibility
+
 N: Jonathan Rosser
 E: jonathan.rosser@bbc.co.uk
 D: Moving Zoneplate Generator
