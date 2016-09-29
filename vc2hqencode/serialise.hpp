@@ -27,7 +27,7 @@
 #define __SERIALISE_HPP__
 
 #include "datastructures.hpp"
-#include "vc2hqencode.h"
+#include "internal.h"
 #include "logger.hpp"
 #include "debug.hpp"
 

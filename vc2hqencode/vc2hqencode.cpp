@@ -23,7 +23,7 @@
  * For more information, contact us at ipstudio@bbc.co.uk.
  *****************************************************************************/
 
-#include "vc2hqencode.h"
+#include "internal.h"
 #include "VC2Encoder.hpp"
 
 #define VC2ENCODER_BEGIN \

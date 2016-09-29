@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "vc2hqencode.h"
+#include "internal.h"
 
 typedef void (*InplaceTransform)(void *idata,
                                  const int istride,

@@ -26,7 +26,7 @@
 #ifndef __VIDEOFORMAT_HPP__
 #define __VIDEOFORMAT_HPP__
 
-#include "vc2hqencode.h"
+#include "internal.h"
 
 namespace vc2 {
   struct FrameRate {

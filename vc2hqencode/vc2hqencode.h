@@ -28,6 +28,25 @@
 
 #include <stdint.h>
 
+#if defined _WIN32 || defined __CYGWIN__
+  #define VC2HQENCODE_EXPORT __declspec(dllexport)
+  #define VC2HQENCODE_IMPORT __declspec(dllimport)
+#else
+  #if __GNUC__ >= 4
+    #define VC2HQENCODE_EXPORT __attribute__((visibility("default")))
+    #define VC2HQENCODE_IMPORT __attribute__((visibility("default")))
+  #else
+    #define VC2HQENCODE_EXPORT
+    #define VC2HQENCODE_IMPORT
+  #endif
+#endif
+
+#ifdef VC2HQENCODE_DLL
+#define VC2HQENCODE_API VC2HQENCODE_EXPORT
+#else
+#define VC2HQENCODE_API VC2HQENCODE_IMPORT
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -285,24 +304,24 @@ typedef struct _VC2EncoderLoggers {
    And in addition each sequence also needs to set asside enough space for the sequence_start_size and sequence_end_size. How many frames you put between these is up to you.
  */
 
-void vc2encode_init();
-void vc2encoder_init_logging(VC2EncoderLoggers);
-VC2EncoderHandle vc2encode_create();
-VC2EncoderResult vc2encode_set_parameters(VC2EncoderHandle, VC2EncoderParams);
-VC2EncoderResult vc2encode_get_parameters(VC2EncoderHandle, VC2EncoderParams *);
+VC2HQENCODE_API void vc2encode_init();
+VC2HQENCODE_API void vc2encoder_init_logging(VC2EncoderLoggers);
+VC2HQENCODE_API VC2EncoderHandle vc2encode_create();
+VC2HQENCODE_API VC2EncoderResult vc2encode_set_parameters(VC2EncoderHandle, VC2EncoderParams);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_parameters(VC2EncoderHandle, VC2EncoderParams *);
 
-VC2EncoderResult vc2encode_get_sequence_start_size(VC2EncoderHandle, uint32_t *size);
-VC2EncoderResult vc2encode_start_sequence(VC2EncoderHandle, char **data, uint32_t *next_parse_offset);
-VC2EncoderResult vc2encode_repeat_sequence_start(VC2EncoderHandle, char **data, uint32_t prev_parse_offset, uint32_t *next_parse_offset);
-VC2EncoderResult vc2encode_get_coded_picture_start_size(VC2EncoderHandle, uint32_t *size);
-VC2EncoderResult vc2encode_start_picture(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, uint32_t picture_number, int data_length, uint32_t *next_parse_offset);
-VC2EncoderResult vc2encode_encode_data(VC2EncoderHandle, char **idata, int *istride, char **odata, int length);
-VC2EncoderResult vc2encode_get_auxiliary_data_start_size(VC2EncoderHandle, uint32_t *size);
-VC2EncoderResult vc2encode_start_auxiliary_data(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, int data_length, uint32_t *next_parse_offset);
-VC2EncoderResult vc2encode_get_sequence_end_size(VC2EncoderHandle, uint32_t *size);
-VC2EncoderResult vc2encode_end_sequence(VC2EncoderHandle, char **data, uint32_t prev_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_sequence_start_size(VC2EncoderHandle, uint32_t *size);
+VC2HQENCODE_API VC2EncoderResult vc2encode_start_sequence(VC2EncoderHandle, char **data, uint32_t *next_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_repeat_sequence_start(VC2EncoderHandle, char **data, uint32_t prev_parse_offset, uint32_t *next_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_coded_picture_start_size(VC2EncoderHandle, uint32_t *size);
+VC2HQENCODE_API VC2EncoderResult vc2encode_start_picture(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, uint32_t picture_number, int data_length, uint32_t *next_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_encode_data(VC2EncoderHandle, char **idata, int *istride, char **odata, int length);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_auxiliary_data_start_size(VC2EncoderHandle, uint32_t *size);
+VC2HQENCODE_API VC2EncoderResult vc2encode_start_auxiliary_data(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, int data_length, uint32_t *next_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_sequence_end_size(VC2EncoderHandle, uint32_t *size);
+VC2HQENCODE_API VC2EncoderResult vc2encode_end_sequence(VC2EncoderHandle, char **data, uint32_t prev_parse_offset);
 
-void vc2encode_destroy(VC2EncoderHandle);
+VC2HQENCODE_API void vc2encode_destroy(VC2EncoderHandle);
 
 #ifdef __cplusplus
 };

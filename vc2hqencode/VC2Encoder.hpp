@@ -28,7 +28,7 @@
 
 #include <atomic>
 
-#include "vc2hqencode.h"
+#include "internal.h"
 #include "VideoFormat.hpp"
 #include "encode.hpp"
 #include "serialise.hpp"
