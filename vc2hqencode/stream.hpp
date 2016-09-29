@@ -26,7 +26,7 @@
 #ifndef __STREAM_HPP__
 #define __STREAM_HPP__
 
-#include "vc2hqencode.h"
+#include "internal.h"
 #include <cstdlib>
 
 class SequenceHeader {

@@ -1,7 +1,7 @@
 /*****************************************************************************
- * logger.cpp : Logging
+ * internal.h : internal data structures and defines needed by the encoder
  *****************************************************************************
- * Copyright (C) 2014-2015 BBC
+ * Copyright (C) 2014-2016 BBC
  *
  * Authors: James P. Weaver <james.barrett@bbc.co.uk>
  *
@@ -23,53 +23,11 @@
  * For more information, contact us at ipstudio@bbc.co.uk.
  *****************************************************************************/
 
-#include "internal.h"
-#include "logger.hpp"
+#ifndef __INTERNAL_HPP__
+#define __INTERNAL_HPP__
 
-#include <cstdio>
-#include <ctime>
-#include <cstdarg>
-#include <cstdlib>
+#include <stdint.h>
+#define VC2HQENCODE_DLL
+#include "vc2hqencode.h"
 
-VC2EncoderLoggers loggers = { 0, 0, 0, 0, 0 };
-
-const char *loglevels[] = { "ERROR", "WARNING", "INFO", "DEBUG" };
-
-void vc2encoder_init_logging(VC2EncoderLoggers l) {
-  loggers = l;
-}
-
-void writelog(int level, const char *fmt, ...) {
-  va_list args;
-  char *msg;
-  va_start(args, fmt);
-  if (vasprintf(&msg, fmt, args) < 0)
-    return;
-
-  switch(level) {
-  case LOG_DEBUG:
-    if (loggers.debug) {
-      loggers.debug(msg, loggers.opaque);
-      break;
-    }
-  case LOG_INFO:
-    if (loggers.info) {
-      loggers.info(msg, loggers.opaque);
-      break;
-    }
-  case LOG_WARN:
-    if (loggers.warn) {
-      loggers.warn(msg, loggers.opaque);
-      break;
-    }
-  case LOG_ERROR:
-    if (loggers.error) {
-      loggers.error(msg, loggers.opaque);
-      break;
-    }
-  default:
-    fprintf(stderr, "%s: %s\n", loglevels[level], msg);
-  }
-
-  free(msg);
-}
+#endif /* __INTERNAL_HPP__ */

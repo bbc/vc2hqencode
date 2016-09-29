@@ -25,7 +25,8 @@ libvc2hqencode_@VC2HQENCODE_MAJORMINOR@_la_LDFLAGS = \
 libvc2hqencode_@VC2HQENCODE_MAJORMINOR@_la_CPPFLAGS = $(VC2HQENCODE_CFLAGS) \
 	$(BOOST_CFLAGS) \
 	-I$(top_srcdir) \
-	-I$(top_srcdir)/redist
+	-I$(top_srcdir)/redist \
+	-fvisibility=hidden
 
 libvc2hqencode_@VC2HQENCODE_MAJORMINOR@_la_SOURCES = vc2hqencode.cpp \
 	VC2Encoder.cpp \
@@ -54,7 +55,8 @@ noinst_HEADERS = VC2Encoder.hpp \
   intdivide.hpp \
   debug.hpp \
   quantiserselection.hpp \
-	encode_slice_component_optimised.hpp
+	encode_slice_component_optimised.hpp \
+	internal.h
 
 nodist_pkginclude_HEADERS = vc2hqencode-stdint.h
 

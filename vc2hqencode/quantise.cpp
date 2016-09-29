@@ -24,7 +24,7 @@
  *****************************************************************************/
 
 #include "quantise.hpp"
-#include "vc2hqencode.h"
+#include "internal.h"
 #include "logger.hpp"
 #include <stdlib.h>
 

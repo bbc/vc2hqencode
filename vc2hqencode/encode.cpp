@@ -23,7 +23,7 @@
  * For more information, contact us at ipstudio@bbc.co.uk.
  *****************************************************************************/
 
-#include "vc2hqencode.h"
+#include "internal.h"
 #include "encode.hpp"
 #include "lut.hpp"
 #include "logger.hpp"
