@@ -33,7 +33,7 @@
 
 #include <x86intrin.h>
 
-template<class T> void serialise_slices(CodedSlice<T> *slices, int n_slices, char *odata, int olength, int n_samples, int slice_size_scalar) {
+template<class T> void serialise_slices(CodedSlice<T> *slices, int n_slices, char *odata, int olength, int n_samples, int slice_size_scalar, int slices_per_frag, uint32_t picnum, uint32_t *final_offset, int sx, int sy, int slices_per_line) {
   int ocounter = 0;
   int bits = 0;
   uint32_t accum = 0x00;
@@ -53,7 +53,60 @@ template<class T> void serialise_slices(CodedSlice<T> *slices, int n_slices, cha
 #endif
 
   int N = 0;
+  int last_frag_start = -1;
+  int slices_til_next_frag_start = 0;
   for (; N < n_slices - 1; N++) {
+    if (slices_per_frag) {
+      if (slices_til_next_frag_start == 0) {
+        if (last_frag_start >= 0) {
+          int frag_length = ocounter - last_frag_start;
+          optr[last_frag_start + 0] = 0x42;
+          optr[last_frag_start + 1] = 0x42;
+          optr[last_frag_start + 2] = 0x43;
+          optr[last_frag_start + 3] = 0x44;
+
+          optr[last_frag_start + 4] = 0xEC;
+
+          optr[last_frag_start + 5] = (frag_length >> 24)&0xFF;
+          optr[last_frag_start + 6] = (frag_length >> 16)&0xFF;
+          optr[last_frag_start + 7] = (frag_length >>  8)&0xFF;
+          optr[last_frag_start + 8] = (frag_length >>  0)&0xFF;
+
+          optr[ocounter +  9] = (frag_length >> 24)&0xFF;
+          optr[ocounter + 10] = (frag_length >> 16)&0xFF;
+          optr[ocounter + 11] = (frag_length >>  8)&0xFF;
+          optr[ocounter + 12] = (frag_length >>  0)&0xFF;
+
+          optr[last_frag_start + 13] = (picnum >> 24)&0xFF;
+          optr[last_frag_start + 14] = (picnum >> 16)&0xFF;
+          optr[last_frag_start + 15] = (picnum >>  8)&0xFF;
+          optr[last_frag_start + 16] = (picnum >>  0)&0xFF;
+
+          frag_length -= 25;
+
+          optr[last_frag_start + 17] = (frag_length >> 8)&0xFF;
+          optr[last_frag_start + 18] = (frag_length >> 0)&0xFF;
+
+          optr[last_frag_start + 19] = (slices_per_frag >> 8)&0xFF;
+          optr[last_frag_start + 20] = (slices_per_frag >> 0)&0xFF;
+
+          optr[last_frag_start + 21] = (sx >> 8)&0xFF;
+          optr[last_frag_start + 22] = (sx >> 0)&0xFF;
+
+          optr[last_frag_start + 23] = (sy >> 8)&0xFF;
+          optr[last_frag_start + 24] = (sy >> 0)&0xFF;
+
+          sx += slices_per_frag;
+          sy += (sx/slices_per_line);
+          sx %= slices_per_line;
+        }
+
+        last_frag_start = ocounter;
+        slices_til_next_frag_start = slices_per_frag - 1;
+        ocounter += 25;
+      } else
+        slices_til_next_frag_start--;
+    }
     int opadding = slices[N].padding;
     if (opadding < 0) {
       writelog(LOG_ERROR, "%s:%d: opadding = %d, remaining_length = %d, slice %u: sizes (%d,%d,%d)\n", __FILE__, __LINE__, opadding, remaining_length, N, slices[N].length[0], slices[N].length[1], slices[N].length[2]);
@@ -116,6 +169,57 @@ template<class T> void serialise_slices(CodedSlice<T> *slices, int n_slices, cha
     remaining_length -= remaining_length/(n_slices - N);
   }
   {
+    if (slices_per_frag) {
+      if (slices_til_next_frag_start == 0) {
+        if (last_frag_start >= 0) {
+          int frag_length = ocounter - last_frag_start;
+          optr[last_frag_start + 0] = 0x42;
+          optr[last_frag_start + 1] = 0x42;
+          optr[last_frag_start + 2] = 0x43;
+          optr[last_frag_start + 3] = 0x44;
+
+          optr[last_frag_start + 4] = 0xEC;
+
+          optr[last_frag_start + 5] = (frag_length >> 24)&0xFF;
+          optr[last_frag_start + 6] = (frag_length >> 16)&0xFF;
+          optr[last_frag_start + 7] = (frag_length >>  8)&0xFF;
+          optr[last_frag_start + 8] = (frag_length >>  0)&0xFF;
+
+          optr[ocounter +  9] = (frag_length >> 24)&0xFF;
+          optr[ocounter + 10] = (frag_length >> 16)&0xFF;
+          optr[ocounter + 11] = (frag_length >>  8)&0xFF;
+          optr[ocounter + 12] = (frag_length >>  0)&0xFF;
+
+          optr[last_frag_start + 13] = (picnum >> 24)&0xFF;
+          optr[last_frag_start + 14] = (picnum >> 16)&0xFF;
+          optr[last_frag_start + 15] = (picnum >>  8)&0xFF;
+          optr[last_frag_start + 16] = (picnum >>  0)&0xFF;
+
+          frag_length -= 25;
+
+          optr[last_frag_start + 17] = (frag_length >> 8)&0xFF;
+          optr[last_frag_start + 18] = (frag_length >> 0)&0xFF;
+
+          optr[last_frag_start + 19] = (slices_per_frag >> 8)&0xFF;
+          optr[last_frag_start + 20] = (slices_per_frag >> 0)&0xFF;
+
+          optr[last_frag_start + 21] = (sx >> 8)&0xFF;
+          optr[last_frag_start + 22] = (sx >> 0)&0xFF;
+
+          optr[last_frag_start + 23] = (sy >> 8)&0xFF;
+          optr[last_frag_start + 24] = (sy >> 0)&0xFF;
+
+          sx += slices_per_frag;
+          sy += (sx/slices_per_line);
+          sx %= slices_per_line;
+        }
+
+        last_frag_start = ocounter;
+        slices_til_next_frag_start = slices_per_frag - 1;
+        ocounter += 25;
+      } else
+        slices_til_next_frag_start--;
+    }
     int opadding = slices[N].padding;
     optr[ocounter++] = (uint8_t)slices[N].qindex;
     for (int c = 0; c < 3; c++) {
@@ -183,6 +287,47 @@ template<class T> void serialise_slices(CodedSlice<T> *slices, int n_slices, cha
   }
   for (; ocounter < olength;)
     optr[ocounter++] = 0xFF;
+
+  if (slices_per_frag) {
+    if (last_frag_start >= 0) {
+      int slices = slices_per_frag - slices_til_next_frag_start;
+      int frag_length = ocounter - last_frag_start;
+      optr[last_frag_start + 0] = 0x42;
+      optr[last_frag_start + 1] = 0x42;
+      optr[last_frag_start + 2] = 0x43;
+      optr[last_frag_start + 3] = 0x44;
+
+      optr[last_frag_start + 4] = 0xEC;
+
+      optr[last_frag_start + 5] = (frag_length >> 24)&0xFF;
+      optr[last_frag_start + 6] = (frag_length >> 16)&0xFF;
+      optr[last_frag_start + 7] = (frag_length >>  8)&0xFF;
+      optr[last_frag_start + 8] = (frag_length >>  0)&0xFF;
+
+      // Prev parse offset not filled out here
+
+      *final_offset = frag_length;
+
+      optr[last_frag_start + 13] = (picnum >> 24)&0xFF;
+      optr[last_frag_start + 14] = (picnum >> 16)&0xFF;
+      optr[last_frag_start + 15] = (picnum >>  8)&0xFF;
+      optr[last_frag_start + 16] = (picnum >>  0)&0xFF;
+
+      frag_length -= 25;
+
+      optr[last_frag_start + 17] = (frag_length >> 8)&0xFF;
+      optr[last_frag_start + 18] = (frag_length >> 0)&0xFF;
+
+      optr[last_frag_start + 19] = (slices >> 8)&0xFF;
+      optr[last_frag_start + 20] = (slices >> 0)&0xFF;
+
+      optr[last_frag_start + 21] = (sx >> 8)&0xFF;
+      optr[last_frag_start + 22] = (sx >> 0)&0xFF;
+
+      optr[last_frag_start + 23] = (sy >> 8)&0xFF;
+      optr[last_frag_start + 24] = (sy >> 0)&0xFF;
+    }
+  }
 
 #ifdef DEBUG_OP_SLICESIZES
   writelog(LOG_INFO, "----------------------------------------------------------\n");

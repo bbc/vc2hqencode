@@ -128,6 +128,10 @@ void detect_cpu_features() {
 void VC2Encoder::setParams(VC2EncoderParams &params) throw(VC2EncoderResult){
   mParams = params;
 
+  if (mEncoderData)
+    delete[] mEncoderData;
+  mEncoderData = new partial_encode_data[NFACTOR];
+
   if (mJobsInFlight != 0) {
     writelog(LOG_ERROR, "%s:%d:  Params change whilst working", __FILE__, __LINE__);
     throw VC2ENCODER_BADTHREAD;
@@ -533,13 +537,22 @@ uint32_t VC2Encoder::repeatSequenceStart(char **data, uint32_t prev_parse_offset
 
 
 uint32_t VC2Encoder::startPicture(char **data, uint32_t prev_parse_offset, uint32_t picture_number, int data_length) {
-  mPictureHeader->setNextParseOffset(data_length + mPictureHeader->length);
-  mPictureHeader->setPrevParseOffset(prev_parse_offset);
-  mPictureHeader->setPictureNumber(picture_number);
+  if (mParams.fragment_size == 0) {
+    mPictureHeader->setNextParseOffset(data_length + mPictureHeader->length);
+    mPictureHeader->setPrevParseOffset(prev_parse_offset);
+    mPictureHeader->setPictureNumber(picture_number);
+  } else {
+    mPictureHeader->setNextParseOffset(mPictureHeader->length);
+    mPictureHeader->setPrevParseOffset(prev_parse_offset);
+    mPictureHeader->setPictureNumber(picture_number);
+  }
 
   memcpy(*data, mPictureHeader->data, mPictureHeader->length);
   *data += mPictureHeader->length;
-  return data_length + mPictureHeader->length;
+  if (mParams.fragment_size == 0)
+    return data_length + mPictureHeader->length;
+  else
+    return mPictureHeader->length;
 }
 
 uint32_t VC2Encoder::startAuxiliaryData(char **_data, uint32_t prev_parse_offset, int data_length) {
@@ -579,14 +592,48 @@ uint32_t VC2Encoder::startAuxiliaryData(char **_data, uint32_t prev_parse_offset
 #endif
 
 
-bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int length) {
-  (void)idata;
-  (void)length;
+uint32_t VC2Encoder::getExtraLengthForFragmentHeaders(uint32_t data_length) {
+  if (mParams.fragment_size == 0)
+    return 0;
+
+  int n_fragments = 0;
+  int n_slices = (mSlicesPerPicture + NFACTOR - 1)/NFACTOR;
+  int k = 0;
+  int remaining_length = (data_length - 4*mSlicesPerPicture)/mSliceSizeScalar;
+  int remaining_slices = mSlicesPerPicture;
+  for (; remaining_slices > n_slices; k++) {
+    int olength = n_slices*remaining_length/remaining_slices;
+    int mean_slice_size = (olength*mSliceSizeScalar + 4*n_slices)/n_slices;
+    int slices_per_frag = mParams.fragment_size/mean_slice_size;
+    if (!slices_per_frag) {
+      writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+      slices_per_frag = 1;
+    }
+    n_fragments += (n_slices + slices_per_frag - 1)/slices_per_frag;
+    remaining_slices -= n_slices;
+    remaining_length -= olength;
+  }
+  {
+    n_slices = remaining_slices;
+    int olength = remaining_length;
+    int mean_slice_size = (olength*mSliceSizeScalar + 4*n_slices)/n_slices;
+    int slices_per_frag = mParams.fragment_size/mean_slice_size;
+    if (!slices_per_frag) {
+      writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+      slices_per_frag = 1;
+    }
+    n_fragments += (n_slices + slices_per_frag - 1)/slices_per_frag;
+  }
+  return n_fragments*25;
+}
+
+bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int length, uint32_t *prev_parse_offset) {
+  int coded_length = length;
   char *odata = *_odata;
 
   ++mJobsInFlight;
 
-  int l = ((length + mJobs - 1)/mJobs)/mSliceSizeScalar*mSliceSizeScalar;
+  int l = ((coded_length + mJobs - 1)/mJobs)/mSliceSizeScalar*mSliceSizeScalar;
   if (mParams.input_format == VC2ENCODER_INPUT_10P2) {
     for (int i = 0; i < mJobs; i++) {
       if (mJobData[i]) {
@@ -603,7 +650,7 @@ bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int lengt
       }
     }
     if (mJobData[mJobs - 1]) {
-      mJobData[mJobs - 1]->olength = (length/mSliceSizeScalar*mSliceSizeScalar) - (mJobs - 1)*l;
+      mJobData[mJobs - 1]->olength = (coded_length/mSliceSizeScalar*mSliceSizeScalar) - (mJobs - 1)*l;
     }
   } else if (mParams.input_format == VC2ENCODER_INPUT_V210) {
     for (int i = 0; i < mJobs; i++) {
@@ -647,29 +694,64 @@ bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int lengt
     CodedSlice<int16_t> *slices = mSlices16->slices;
     int n_slices = (mSlicesPerPicture + NFACTOR - 1)/NFACTOR;
     int k = 0;
-    int remaining_length = (length - 4*mSlicesPerPicture)/mSliceSizeScalar;
+    int remaining_length = (coded_length - 4*mSlicesPerPicture)/mSliceSizeScalar;
     int remaining_slices = mSlicesPerPicture;
+    int sx = 0;
+    int sy = 0;
     for (; remaining_slices > n_slices; k++) {
       int olength = n_slices*remaining_length/remaining_slices;
+      int mean_slice_size = (olength*mSliceSizeScalar + 4*n_slices)/n_slices;
+      int slices_per_frag = mParams.fragment_size/mean_slice_size;
+      if (mParams.fragment_size && !slices_per_frag) {
+        writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+        slices_per_frag = 1;
+      }
+      int frag_hdr_size = slices_per_frag?((n_slices + slices_per_frag - 1)/slices_per_frag)*25:0;
+      mEncoderData[k].slices = slices;
+      mEncoderData[k].n_slices = n_slices;
+      mEncoderData[k].odata = odata;
+      mEncoderData[k].olength = olength*mSliceSizeScalar + 4*n_slices;
+      mEncoderData[k].N = k;
+      mEncoderData[k].n_samples = mSlices16->width[0]*mSlices16->height[0];
+      mEncoderData[k].slices_per_frag = slices_per_frag;
+      mEncoderData[k].full_length = olength*mSliceSizeScalar + 4*n_slices + frag_hdr_size;
+      mEncoderData[k].final_offset = 0;
+      mEncoderData[k].sx = sx;
+      mEncoderData[k].sy = sy;
       MT_JOB(bind(&VC2Encoder::EncodePartial<int16_t>, this,
-                         slices,
-                         n_slices,
-                         odata,
-                         olength*mSliceSizeScalar + 4*n_slices,
-                         k,
-                         mSlices16->width[0]*mSlices16->height[0]));
+                  &mEncoderData[k]));
+      sx += n_slices;
+      if (sx >= mSlicesPerLine) {
+        sy += (sx/mSlicesPerLine);
+        sx %= mSlicesPerLine;
+      }
       slices += n_slices;
       remaining_slices -= n_slices;
-      odata += olength*mSliceSizeScalar + 4*n_slices;
+      odata += olength*mSliceSizeScalar + 4*n_slices + frag_hdr_size;
       remaining_length -= olength;
     }
-    MT_JOB(bind(&VC2Encoder::EncodePartial<int16_t>, this,
-                       slices,
-                       remaining_slices,
-                       odata,
-                       remaining_length*mSliceSizeScalar + 4*remaining_slices,
-                       k,
-                       mSlices16->width[0]*mSlices16->height[0]));
+    {
+      int mean_slice_size = (remaining_length*mSliceSizeScalar + 4*remaining_slices)/remaining_slices;
+      int slices_per_frag = mParams.fragment_size/mean_slice_size;
+      if (mParams.fragment_size && !slices_per_frag) {
+        writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+        slices_per_frag = 1;
+      }
+      int frag_hdr_size = slices_per_frag?((remaining_slices + slices_per_frag - 1)/slices_per_frag)*25:0;
+      mEncoderData[k].slices = slices;
+      mEncoderData[k].n_slices = remaining_slices;
+      mEncoderData[k].odata = odata;
+      mEncoderData[k].olength = remaining_length*mSliceSizeScalar + 4*remaining_slices;
+      mEncoderData[k].N = k;
+      mEncoderData[k].n_samples = mSlices16->width[0]*mSlices16->height[0];
+      mEncoderData[k].slices_per_frag = slices_per_frag;
+      mEncoderData[k].full_length = remaining_length*mSliceSizeScalar + 4*remaining_slices + frag_hdr_size;
+      mEncoderData[k].final_offset = 0;
+      mEncoderData[k].sx = sx;
+      mEncoderData[k].sy = sy;
+      MT_JOB(bind(&VC2Encoder::EncodePartial<int16_t>, this,
+                  &mEncoderData[k]));
+    }
     if (EXEC_MT)
       throw VC2ENCODER_ENCODE_FAILED;
   } else if (mCoefSize == 4) {
@@ -677,31 +759,84 @@ bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int lengt
     CodedSlice<int32_t> *slices = mSlices32->slices;
     int n_slices = (mSlicesPerPicture + NFACTOR - 1)/NFACTOR;
     int k = 0;
-    int remaining_length = (length - 4*mSlicesPerPicture)/mSliceSizeScalar;
+    int remaining_length = (coded_length - 4*mSlicesPerPicture)/mSliceSizeScalar;
     int remaining_slices = mSlicesPerPicture;
+    int sx = 0;
+    int sy = 0;
     for (; remaining_slices > n_slices; k++) {
       int olength = n_slices*remaining_length/remaining_slices;
+      int mean_slice_size = (olength*mSliceSizeScalar + 4*n_slices)/n_slices;
+      int slices_per_frag = mParams.fragment_size/mean_slice_size;
+      if (mParams.fragment_size && !slices_per_frag) {
+        writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+        slices_per_frag = 1;
+      }
+      int frag_hdr_size = slices_per_frag?((n_slices + slices_per_frag - 1)/slices_per_frag)*25:0;
+      mEncoderData[k].slices = slices;
+      mEncoderData[k].n_slices = n_slices;
+      mEncoderData[k].odata = odata;
+      mEncoderData[k].olength = olength*mSliceSizeScalar + 4*n_slices;
+      mEncoderData[k].N = k;
+      mEncoderData[k].n_samples = mSlices16->width[0]*mSlices16->height[0];
+      mEncoderData[k].slices_per_frag = slices_per_frag;
+      mEncoderData[k].full_length = olength*mSliceSizeScalar + 4*n_slices + frag_hdr_size;
+      mEncoderData[k].final_offset = 0;
+      mEncoderData[k].sx = sx;
+      mEncoderData[k].sy = sy;
       MT_JOB(bind(&VC2Encoder::EncodePartial<int32_t>, this,
-                         slices,
-                         n_slices,
-                         odata,
-                         olength*mSliceSizeScalar + 4*n_slices,
-                         k,
-                         mSlices16->width[0]*mSlices16->height[0]));
+                  &mEncoderData[k]));
+      sx += n_slices;
+      if (sx >= mSlicesPerLine) {
+        sx -= mSlicesPerLine;
+        sy++;
+      }
       slices += n_slices;
       remaining_slices -= n_slices;
-      odata += olength*mSliceSizeScalar + 4*n_slices;
+      odata += olength*mSliceSizeScalar + 4*n_slices + frag_hdr_size;
       remaining_length -= olength;
     }
-    MT_JOB(bind(&VC2Encoder::EncodePartial<int32_t>, this,
-                       slices,
-                       remaining_slices,
-                       odata,
-                       remaining_length*mSliceSizeScalar + 4*remaining_slices,
-                       k,
-                       mSlices16->width[0]*mSlices16->height[0]));
+    {
+      int mean_slice_size = (remaining_length*mSliceSizeScalar + 4*remaining_slices)/remaining_slices;
+      int slices_per_frag = mParams.fragment_size/mean_slice_size;
+      if (mParams.fragment_size && !slices_per_frag) {
+        writelog(LOG_ERROR, "%s:%d: slices of size %d don't fit in fragment of size %d", __FILE__, __LINE__, mean_slice_size, mParams.fragment_size);
+        slices_per_frag = 1;
+      }
+      int frag_hdr_size = slices_per_frag?((remaining_slices + slices_per_frag - 1)/slices_per_frag)*25:0;
+      mEncoderData[k].slices = slices;
+      mEncoderData[k].n_slices = remaining_slices;
+      mEncoderData[k].odata = odata;
+      mEncoderData[k].olength = remaining_length*mSliceSizeScalar + 4*remaining_slices;
+      mEncoderData[k].N = k;
+      mEncoderData[k].n_samples = mSlices16->width[0]*mSlices16->height[0];
+      mEncoderData[k].slices_per_frag = slices_per_frag;
+      mEncoderData[k].full_length = remaining_length*mSliceSizeScalar + 4*remaining_slices + frag_hdr_size;
+      mEncoderData[k].final_offset = 0;
+      mEncoderData[k].sx = sx;
+      mEncoderData[k].sy = sy;
+      MT_JOB(bind(&VC2Encoder::EncodePartial<int32_t>, this,
+                  &mEncoderData[k]));
+    }
     if (EXEC_MT)
       throw VC2ENCODER_ENCODE_FAILED;
+  }
+
+  if (mParams.fragment_size) {
+    if (prev_parse_offset) {
+      mEncoderData[0].odata[ 9] = ((*prev_parse_offset) >> 24)&0xFF;
+      mEncoderData[0].odata[10] = ((*prev_parse_offset) >> 16)&0xFF;
+      mEncoderData[0].odata[11] = ((*prev_parse_offset) >>  8)&0xFF;
+      mEncoderData[0].odata[12] = ((*prev_parse_offset) >>  0)&0xFF;
+    }
+    for (int k = 0; k < NFACTOR - 1; k++) {
+      mEncoderData[k+1].odata[ 9] = (mEncoderData[k].final_offset >> 24)&0xFF;
+      mEncoderData[k+1].odata[10] = (mEncoderData[k].final_offset >> 16)&0xFF;
+      mEncoderData[k+1].odata[11] = (mEncoderData[k].final_offset >>  8)&0xFF;
+      mEncoderData[k+1].odata[12] = (mEncoderData[k].final_offset >>  0)&0xFF;
+    }
+    if (prev_parse_offset) {
+      *prev_parse_offset = mEncoderData[NFACTOR-1].final_offset;
+    }
   }
 
 #ifdef DEBUG_PRINT_STATS
@@ -791,7 +926,7 @@ bool VC2Encoder::encodeData(char **idata, int *istride, char **_odata, int lengt
   }
 #endif /*DEBUG_P_BLOCK*/
 
-  *_odata += length;
+  *_odata += length + getExtraLengthForFragmentHeaders(length);
 
   return true;
 }
@@ -821,8 +956,16 @@ void VC2Encoder::endSequence(char **_data, uint32_t prev_parse_offset) {
 
 
 
-template<class T> void VC2Encoder::EncodePartial(CodedSlice<T> *slices, int n_slices, char *odata, int olength, int N, int n_samples) {
-  (void)N;
+template<class T> void VC2Encoder::EncodePartial(partial_encode_data *data) {
+  CodedSlice<T> *slices = (CodedSlice<T>*)data->slices;
+  int n_slices = data->n_slices;
+  char *odata = data->odata;
+  int olength = data->olength;
+  int n_samples = data->n_samples;
+  int slices_per_frag = data->slices_per_frag;
+  uint32_t *final_offset = &data->final_offset;
+  int sx = data->sx;
+  int sy = data->sy;
   /* First Encode Pass */
   Encode<T>(slices, n_slices, olength);
 
@@ -838,9 +981,8 @@ template<class T> void VC2Encoder::EncodePartial(CodedSlice<T> *slices, int n_sl
   }
 #endif
 
-
   /* Serialise */
-  Serialise<T>(slices, n_slices, odata, olength, n_samples);
+  Serialise<T>(slices, n_slices, odata, olength, n_samples, slices_per_frag, final_offset, sx, sy);
 }
 
 template <class T> void VC2Encoder::Transform(JobBase *_job) {
@@ -973,6 +1115,6 @@ template<> void VC2Encoder::Encode(CodedSlice<int32_t> *slices, int n_slices, in
   slice_encoder_func32(slices, n_slices, mQuantisationMatrices, olength, mParams.transform_params.wavelet_index, mSliceSizeScalar, mParams.transform_params.slice_width, mParams.transform_params.slice_height, mDepth);
 }
 
-template<class T> void VC2Encoder::Serialise(CodedSlice<T> *slices, int n_slices, char *odata, int length, int n_samples) {
-  serialise_slices<T>(slices, n_slices, odata, length, n_samples, mSliceSizeScalar);
+template<class T> void VC2Encoder::Serialise(CodedSlice<T> *slices, int n_slices, char *odata, int length, int n_samples, int slices_per_frag, uint32_t *final_offset, int sx, int sy) {
+  serialise_slices<T>(slices, n_slices, odata, length, n_samples, mSliceSizeScalar, slices_per_frag, mPictureNumber, final_offset, sx, sy, mSlicesPerLine);
 }

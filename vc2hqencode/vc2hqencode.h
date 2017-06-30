@@ -53,7 +53,7 @@ extern "C" {
 
 #define MAX_DWT_DEPTH 8
 
-#define VC2ENCODER_API_VERSION 1
+#define VC2ENCODER_API_VERSION 2
 
 /*
  This forces a link error if trying to link to an incompatible version of the code,
@@ -258,6 +258,7 @@ typedef struct _VC2EncoderParams {
   int n_threads;
   int speed;
   int numa_first_node;
+  int fragment_size;
 
   VC2EncoderInputFormat input_format;
 } VC2EncoderParams;
@@ -315,7 +316,9 @@ VC2HQENCODE_API VC2EncoderResult vc2encode_start_sequence(VC2EncoderHandle, char
 VC2HQENCODE_API VC2EncoderResult vc2encode_repeat_sequence_start(VC2EncoderHandle, char **data, uint32_t prev_parse_offset, uint32_t *next_parse_offset);
 VC2HQENCODE_API VC2EncoderResult vc2encode_get_coded_picture_start_size(VC2EncoderHandle, uint32_t *size);
 VC2HQENCODE_API VC2EncoderResult vc2encode_start_picture(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, uint32_t picture_number, int data_length, uint32_t *next_parse_offset);
+VC2HQENCODE_API VC2EncoderResult vc2encode_get_fragment_headers_for_picture_size(VC2EncoderHandle, uint32_t length, uint32_t *size);
 VC2HQENCODE_API VC2EncoderResult vc2encode_encode_data(VC2EncoderHandle, char **idata, int *istride, char **odata, int length);
+VC2HQENCODE_API VC2EncoderResult vc2encode_encode_fragmented_data(VC2EncoderHandle, char **idata, int *istride, char **odata, int length, uint32_t prev_parse_offset, uint32_t *next_parse_offset);
 VC2HQENCODE_API VC2EncoderResult vc2encode_get_auxiliary_data_start_size(VC2EncoderHandle, uint32_t *size);
 VC2HQENCODE_API VC2EncoderResult vc2encode_start_auxiliary_data(VC2EncoderHandle handle, char **data, uint32_t prev_parse_offset, int data_length, uint32_t *next_parse_offset);
 VC2HQENCODE_API VC2EncoderResult vc2encode_get_sequence_end_size(VC2EncoderHandle, uint32_t *size);

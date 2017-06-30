@@ -76,7 +76,8 @@ int main (int argc, char *argv[]) {
   std::string input_filename;
   std::string output_filename;
   bool zoneplate              = false;
-  int speed = VC2ENCODER_SPEED_SLOWEST;
+  int speed                   = VC2ENCODER_SPEED_SLOWEST;
+  int fragment_size           = 0;
 
   try {
     TCLAP::CmdLine cmd("VC2 HQ profile Encoder Example\n"
@@ -97,6 +98,7 @@ int main (int argc, char *argv[]) {
     TCLAP::SwitchArg     V210_arg                ("", "V210",           "V210 input",                                               cmd, false);
     TCLAP::ValueArg<int> width_arg               ("", "width",          "frame width",                         false, 1920, "integer", cmd);
     TCLAP::ValueArg<int> height_arg              ("", "height",         "frame height",                        false, 1080, "integer", cmd);
+    TCLAP::ValueArg<int> fragments_arg           ("f", "fragment",      "maximum size for picture fragments (default is don't fragment)",  false, 0,  "integer", cmd);
     
     TCLAP::UnlabeledMultiArg<std::string> file_args("input_file",   "encoded input file",                          false, "string", cmd);
 
@@ -115,6 +117,7 @@ int main (int argc, char *argv[]) {
     V210                = V210_arg.getValue();
     width               = width_arg.getValue();
     height              = height_arg.getValue();
+    fragment_size       = fragments_arg.getValue();
 
     std::vector<std::string> filenames = file_args.getValue();
     if (filenames.size() > 0) {
@@ -243,14 +246,13 @@ int main (int argc, char *argv[]) {
     params.input_format                   = VC2ENCODER_INPUT_10P2;
   else
     params.input_format                   = VC2ENCODER_INPUT_V210;
+  params.fragment_size = fragment_size;
 
   r = vc2encode_set_parameters(encoder, params);
   if (r != VC2ENCODER_OK) {
     printf("Error in vc2encode_set_parameters\n");
     return 1;
   }
-
-
 
   /* Get sequence start size */
   uint32_t seq_start_size;
@@ -269,7 +271,6 @@ int main (int argc, char *argv[]) {
     printf("Error in vc2encode_get_coded_picture_start_size\n");
     return 1;
   }
-
 
 
   /* Get sequence end size */
@@ -515,7 +516,15 @@ int main (int argc, char *argv[]) {
     num_output_pictures = (interlace?2:1);
   int bytes_per_picture = (width*height*2*10/(8*ratio*(interlace?2:1)));
 
-  char *odata = (char *)malloc(seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture) + seq_end_size);
+  /* Get extra size needed for each frame to allow fragment headers */
+  uint32_t pic_frag_size;
+  r = vc2encode_get_fragment_headers_for_picture_size(encoder, bytes_per_picture, &pic_frag_size);
+  if (r != VC2ENCODER_OK) {
+    printf("Error in vc2encode_get_fragment_headers_for_picture_size\n");
+    return 1;
+  }
+
+  char *odata = (char *)malloc(seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture + pic_frag_size) + seq_end_size);
 
 
 
@@ -552,7 +561,7 @@ int main (int argc, char *argv[]) {
         break;
       }
 
-      r = vc2encode_encode_data(encoder, ipictures[n], istride, &o, bytes_per_picture);
+      r = vc2encode_encode_fragmented_data(encoder, ipictures[n], istride, &o, bytes_per_picture, parse_offset, &parse_offset);
       if (r != VC2ENCODER_OK) {
         printf("Failed to encode picture\n");
         err = 1;
@@ -587,11 +596,11 @@ int main (int argc, char *argv[]) {
   if (!err && !disable_output) {
     ssize_t s;
     int of = open(output_filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 00777);
-    s = write(of, odata, seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture) + seq_end_size);
+    s = write(of, odata, seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture + pic_frag_size) + seq_end_size);
     if (s < 0)
       printf("Output error\n");
     else
-      printf("Wrote %d pictures in %d bytes\n", num_output_pictures, seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture) + seq_end_size);
+      printf("Wrote %d pictures in %d bytes\n", num_output_pictures, seq_start_size + num_output_pictures*(pic_start_size + bytes_per_picture + pic_frag_size) + seq_end_size);
   }
 
   /* Destroy encoder */

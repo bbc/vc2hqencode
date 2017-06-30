@@ -63,7 +63,10 @@ SequenceHeader::SequenceHeader(VC2EncoderParams &params) {
   uint8_t *wl   = wordlengths;
 
   //parse_parameters
-  l += encode_uint(2, cw++, wl++); // major version == 2
+  if (params.fragment_size != 0)
+    l += encode_uint(3, cw++, wl++); // major version == 3
+  else
+    l += encode_uint(2, cw++, wl++); // major version == 2
   l += encode_uint(0, cw++, wl++); // minor version == 0
   l += encode_uint(3, cw++, wl++); // profile       == 3 (HQ)
 
@@ -338,6 +341,9 @@ PictureHeader::PictureHeader(VC2EncoderParams &params, int slices_x, int slices_
   data = (uint8_t*)malloc(MAX_PARSE_INFO_SIZE + MAX_PIC_HEADER_SIZE);
   length = 0;
 
+  int major_version = 2;
+  if (params.fragment_size != 0)
+    major_version = 3;
 
   // Now start encoding the data
   uint32_t codewords[MAX_SEQ_HEADER_VALUES];
@@ -349,6 +355,10 @@ PictureHeader::PictureHeader(VC2EncoderParams &params, int slices_x, int slices_
 
   l += encode_uint(params.transform_params.wavelet_index,  cw++, wl++);
   l += encode_uint(params.transform_params.wavelet_depth,  cw++, wl++);
+  if (major_version >= 3) {
+    l += encode_bool(0, cw++, wl++);
+    l += encode_bool(0, cw++, wl++);
+  }
   l += encode_uint(slices_x,                               cw++, wl++);
   l += encode_uint(slices_y,                               cw++, wl++);
   l += encode_uint(0,                                      cw++, wl++);
@@ -376,7 +386,10 @@ PictureHeader::PictureHeader(VC2EncoderParams &params, int slices_x, int slices_
   data[length++] = 0x43; // C
   data[length++] = 0x44; // D
 
-  data[length++] = 0xE8; // 0 == HQ Picture
+  if (params.fragment_size == 0)
+    data[length++] = 0xE8; // 0 == HQ Picture
+  else
+    data[length++] = 0xEC; // 0 == HQ Fragment
 
   data[length++] = 0x00; // next_parse_offset,
   data[length++] = 0x00; // FILLED IN LATER
@@ -393,6 +406,14 @@ PictureHeader::PictureHeader(VC2EncoderParams &params, int slices_x, int slices_
   data[length++] = 0x00; //
   data[length++] = 0x00; //
 
+  if (params.fragment_size > 0) {
+    data[length++] = 0x00; // length
+    data[length++] = 0x00; // FILLED IN LATER
+
+    data[length++] = 0x00; // Slice Count
+    data[length++] = 0x00;
+  }
+
   uint64_t accum = 0;
   int bits = 0;
   for (int x = 0; x < n; x++) {
@@ -407,6 +428,12 @@ PictureHeader::PictureHeader(VC2EncoderParams &params, int slices_x, int slices_
   }
   if (bits > 0) {
     data[length++] = (accum >> 56) | (0xFF >> bits);
+  }
+
+  if (params.fragment_size > 0) {
+    // Fill out fragment length
+    data[17] = ((length - 21) >> 8)&0xFF;
+    data[18] = ((length - 21) >> 0)&0xFF;
   }
 
 #ifdef DEBUG_PRINT_PICHEADER

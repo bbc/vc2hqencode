@@ -111,10 +111,31 @@ VC2EncoderResult vc2encode_start_picture(VC2EncoderHandle handle, char **data, u
   VC2ENCODER_END
 }
 
+VC2EncoderResult vc2encode_get_fragment_headers_for_picture_size(VC2EncoderHandle handle, uint32_t length, uint32_t *size) {
+   VC2ENCODER_BEGIN
+
+   *size = encoder->getExtraLengthForFragmentHeaders(length);
+   return VC2ENCODER_OK;
+
+   VC2ENCODER_END
+}
+
 VC2EncoderResult vc2encode_encode_data(VC2EncoderHandle handle, char **idata, int *istride, char **odata, int length) {
   VC2ENCODER_BEGIN
 
-  if (encoder->encodeData(idata, istride, odata, length))
+    if (encoder->encodeData(idata, istride, odata, length, NULL))
+    return VC2ENCODER_OK;
+  else
+    return VC2ENCODER_ENCODE_FAILED;
+
+  VC2ENCODER_END
+}
+
+VC2EncoderResult vc2encode_encode_fragmented_data(VC2EncoderHandle handle, char **idata, int *istride, char **odata, int length, uint32_t prev_parse_offset, uint32_t *next_parse_offset) {
+  VC2ENCODER_BEGIN
+
+  *next_parse_offset = prev_parse_offset;
+  if (encoder->encodeData(idata, istride, odata, length, next_parse_offset))
     return VC2ENCODER_OK;
   else
     return VC2ENCODER_ENCODE_FAILED;

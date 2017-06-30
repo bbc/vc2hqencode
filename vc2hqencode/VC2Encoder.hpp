@@ -85,6 +85,8 @@ public:
       delete mSlices32;
     if (mQuantisationMatrices)
       delete mQuantisationMatrices;
+    if (mEncoderData)
+      delete[] mEncoderData;
   }
 
   void setParams(VC2EncoderParams &params) throw(VC2EncoderResult);
@@ -94,22 +96,36 @@ public:
   uint32_t getSequenceHeaderSize() { return mSequenceHeader->length - 13; }
   uint32_t getPictureHeaderSize() { return 4; }
   uint32_t getTransformParametersSize() { return mPictureHeader->length - 17; }
+  uint32_t getExtraLengthForFragmentHeaders(uint32_t data_length);
 
   uint32_t startSequence(char **data);
   uint32_t repeatSequenceStart(char **data, uint32_t prev_parse_offset);
   uint32_t startPicture(char **data, uint32_t prev_parse_offset, uint32_t picture_number, int data_length);
-  bool encodeData(char **idata, int *istride, char **odata, int length);
+  bool encodeData(char **idata, int *istride, char **odata, int length, uint32_t *prev_parse_offset);
   uint32_t startAuxiliaryData(char **data, uint32_t prev_parse_offset, int data_length);
   void endSequence(char **data, uint32_t prev_parse_offset);
 
   int getCallCount() { return 0; }
 
 protected:
-  template<class T> void EncodePartial(CodedSlice<T> *slices, int n_slices, char *odata, int olength, int N, int n_samples);
+  struct partial_encode_data {
+    void *slices; // Actually a CodedSlice<T> for some T
+    int n_slices;
+    char *odata;
+    int olength;
+    int N;
+    int n_samples;
+    int slices_per_frag;
+    int full_length;
+    uint32_t final_offset;
+    int sx;
+    int sy;
+  };
+  template<class T> void EncodePartial(partial_encode_data *data);
 
   template<class T> void Transform(JobBase *);
   template<class T> void Encode(CodedSlice<T> *slices, int n_slices, int olength);
-  template<class T> void Serialise(CodedSlice<T> *slices, int n_slices, char *odata, int length, int n_samples);
+  template<class T> void Serialise(CodedSlice<T> *slices, int n_slices, char *odata, int length, int n_samples, int slices_per_frag, uint32_t *final_offset, int sx, int sy);
 
   VC2EncoderParams mParams;
   vc2::VideoFormat mVideoFormat;
@@ -157,6 +173,8 @@ protected:
   uint32_t mPictureNumber;
 
   int mCoefSize;
+
+  partial_encode_data *mEncoderData;
 };
 
 #endif /* __VC2ENCODER_HPP__ */
