@@ -65,6 +65,8 @@ public:
     slice_encoder_func16 = NULL;
     slice_encoder_func32 = NULL;
 
+    mEncoderData = NULL;
+
     mSliceSizeScalar = 2;
     mInterlaced = false;
   }
