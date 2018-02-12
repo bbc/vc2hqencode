@@ -265,7 +265,9 @@ void VC2Encoder::setParams(VC2EncoderParams &params) throw(VC2EncoderResult){
 
   if ((mPaddedWidth%params.transform_params.slice_width != 0) ||
       (mPaddedHeight%params.transform_params.slice_height != 0)) {
-    writelog(LOG_ERROR, "%s:%d: Support for slice sizes which do not divide the padded picture size is not implemented.\n", __FILE__, __LINE__);
+    writelog(LOG_ERROR, "%s:%d: Support for slice sizes (%dx%d) which do not divide the padded picture size (%dx%d) is not implemented.\n", __FILE__, __LINE__,
+            params.transform_params.slice_width, params.transform_params.slice_height,
+            mPaddedWidth, mPaddedHeight);
     throw VC2ENCODER_BADPARAMS;
   }
 
