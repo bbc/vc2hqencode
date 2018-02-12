@@ -182,10 +182,7 @@ int main (int argc, char *argv[]) {
     {
       std::stringstream ss;
       ss << "zoneplate_" << width << "x" << height << "_" << wavelet_string << "_";
-      if (depth == 2)
-        ss << "8x8x2_";
-      else
-        ss << "32x8x3_";
+      ss << slice_width << "x" << slice_height << "x" << depth << "_";
       ss << speed_string << "_" << num_frames << "frames_" << threads_number << "threads" << ".vc2";
       output_filename = ss.str();
     }
