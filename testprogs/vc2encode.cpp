@@ -61,7 +61,7 @@ int main (int argc, char *argv[]) {
   vc2encode_init();
 
   int num_frames              = 1;
-  int ratio                   = 2;
+  float ratio                   = 2;
   int threads_number          = 1;
   std::string wavelet_string  = "legall";
   std::string speed_string    = "medium";
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) {
                        "First file is input file, second is output, others are ignored", '=', "0.1", true);
 
     TCLAP::ValueArg<int> num_frames_arg          ("n", "num-frames",     "Number of frames to encode",          false, 1, "integer", cmd);
-    TCLAP::ValueArg<int> ratio_arg               ("r", "ratio",          "r:1 compression ratio",               false, 2, "integer", cmd);
+    TCLAP::ValueArg<float> ratio_arg               ("r", "ratio",          "r:1 compression ratio (float)",               false, 2, "float", cmd);
     TCLAP::ValueArg<int> num_threads_arg         ("t", "threads",        "Number of threads",                   false, 1, "integer", cmd);
     TCLAP::ValueArg<std::string> wavelet_arg     ("w", "wavelet",        "wavelet kernel: `fidelity', `deslauriers-debuc-9-7', `deslauriers-debuc-13-7', `legall', `haar0', or `haar1'", false, "legall", "string", cmd);
     TCLAP::ValueArg<int> depth_arg               ("d", "depth",          "wavelet depth",                       false, 3, "integer", cmd);
@@ -515,6 +515,7 @@ int main (int argc, char *argv[]) {
   if (disable_output) /* If output is disabled then only bother with space for one frame */
     num_output_pictures = (interlace?2:1);
   int bytes_per_picture = (width*height*2*10/(8*ratio*(interlace?2:1)));
+  printf("Setting bytes_per_picture=%d\n",bytes_per_picture);
 
   /* Get extra size needed for each frame to allow fragment headers */
   uint32_t pic_frag_size;
