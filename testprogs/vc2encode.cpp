@@ -61,7 +61,7 @@ int main (int argc, char *argv[]) {
   vc2encode_init();
 
   int num_frames              = 1;
-  float ratio                   = 2;
+  float ratio                 = 2;
   int threads_number          = 1;
   std::string wavelet_string  = "legall";
   std::string speed_string    = "medium";
