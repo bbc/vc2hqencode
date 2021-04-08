@@ -28,6 +28,7 @@
 
 #include <thread>
 #include <algorithm>
+#include <vector>
 
 class thread_group {
 public:
